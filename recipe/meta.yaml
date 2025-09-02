@@ -1,54 +1,93 @@
 {% set name = "papermill" %}
-{% set version = "2.3.4" %}
+{% set version = "2.6.0" %}
 
 package:
   name: {{ name|lower }}
   version: {{ version }}
 
 source:
-  url: https://pypi.io/packages/source/{{ name[0] }}/{{ name }}/{{ name }}-{{ version }}.tar.gz
-  sha256: be12d2728989c0ae17b42fcb05b623500004e94b34f56bd153355ccebb84a59a
+  url: https://github.com/nteract/{{ name }}/archive/refs/tags/{{ version }}.tar.gz
+  sha256: ddfd94093ce26e68b10c9546f596293e9bf7e13e2977ae7d4f0a8a3bd92ac95f
+  patches:
+    - 0001_fix_test.patch
 
 build:
   number: 0
   entry_points:
     - papermill = papermill.cli:papermill
-  script: {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv
-  noarch: python
+  script: {{ PYTHON }} -m pip install . --no-deps --ignore-installed -vv --no-build-isolation
 
 requirements:
   host:
-    - python >=3.6
+    - python
     - pip
+    - setuptools
   run:
-    - ansiwrap
-    - black
+    - ansicolors
+    - aiohttp >=3.9.0 # [py==312]
     - click
     - entrypoints
     - nbclient >=0.2.0
-    - nbformat >=5.1.2
-    - python >=3.6
+    - nbformat >=5.2.0
+    - python
     - pyyaml
     - requests
-    - tenacity
+    - tenacity >=5.0.2
     - tqdm >=4.32.2
 
+
+# Skip these tests because next packages are unavailable now in conda:     
+# - gcsfs>=0.2.0
+# - azure-datalake-store >= 0.0.30
+# - azure-identity>=1.3.1
+{% set ignore_tests = [
+  "--ignore=papermill/tests/test_abs.py",
+  "--ignore=papermill/tests/test_adl.py",
+  "--ignore=papermill/tests/test_gcs.py"
+] %}
+
+{% set ignore_tests_cases = [
+  # Jupyter required. but is incompatible with current packages
+  "test_output_formatting",
+  "TestBrokenNotebook2"
+] %}
+
 test:
+  source_files:
+    - pyproject.toml
+    - pytest.ini
+    - papermill
   imports:
     - papermill
+  requires:
+    - boto3
+    - moto >= 5.0.0,<5.1.0
+    - aiohttp
+    - pip
+    - pytest
+    - ansicolors
+    - azure-storage-blob >= 12.1.0
+    - requests >= 2.21.0
+    - matplotlib
+    - ipywidgets
+    - ipykernel
+    - ipython>=5.0
+    - notebook
   commands:
     - papermill --help
     - pip check
-  requires:
-    - pip
+    - python -m pytest papermill/tests {{ ignore_tests | join(' ') }} -k "not ({{ ignore_tests_cases | join(' or ') }})"
 
 about:
-  home: http://github.com/nteract/papermill
+  home: https://github.com/nteract/papermill
   license: BSD-3-Clause
   license_family: BSD
   license_file: LICENSE
   summary: Papermill parameterizes, executes, and analyzes Jupyter Notebooks.
-  doc_url: http://papermill.readthedocs.io/
+  description: |
+    Papermill is a tool for parameterizing and executing Jupyter Notebooks.
+    Papermill lets you parameterize notebooks and execute notebooks
+  doc_url: https://papermill.readthedocs.io/
   dev_url: https://github.com/nteract/papermill
 
 extra:
