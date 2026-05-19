@@ -64,11 +64,11 @@ test:
   commands:
     - pip check
     - papermill --help
-    # Unable to run with --pyargs
-    - python -m pytest papermill/tests {{ ignore_tests }} {{ deselect_tests }}
+    # Unable to run with --pyargs, skip py314 unable to configure tests - missing deps.
+    - python -m pytest papermill/tests {{ ignore_tests }} {{ deselect_tests }}  # [py<314]
   requires:
     - boto3
-    - moto >=5,<5.1
+    - moto >=5,<5.1  # [py<314]
     - aiohttp
     - pip
     - pytest
@@ -78,7 +78,7 @@ test:
     - matplotlib-base
     - ipywidgets
     - ipykernel
-    - ipython >=5,<9
+    - ipython >=5,<9  # [py<314]
     - notebook
 
 about:
